@@ -9,12 +9,10 @@ class Product extends Model
 {
     use HasFactory;
 
-    // Ezeket a mezőket engedjük tömegesen kitölteni
-    protected $fillable = ['category_id', 'name', 'description', 'price', 'image_url'];
-
-    // Kapcsolat a kategóriával (Egy termék egy kategóriához tartozik)
-    public function category()
-    {
-        return $this->belongsTo(Category::class);
-    }
+    protected $fillable = [
+        'name',
+        'description',
+        'price',
+        'image_url'
+    ];
 }
