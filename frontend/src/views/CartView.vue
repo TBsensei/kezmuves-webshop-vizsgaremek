@@ -48,6 +48,17 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showToast" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+      <div class="toast show align-items-center border-0 shadow" :class="toastClass" role="alert">
+        <div class="d-flex text-white" :class="{'text-dark': toastClass.includes('warning')}">
+          <div class="toast-body fw-bold">
+            {{ toastMessage }}
+          </div>
+          <button type="button" class="btn-close me-2 m-auto" :class="{'btn-close-white': !toastClass.includes('warning')}" @click="showToast = false"></button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -58,7 +69,12 @@ export default {
   name: 'CartView',
   data() {
     return {
-      cart: []
+      cart: [],
+      // Toast változók
+      showToast: false,
+      toastMessage: '',
+      toastClass: 'bg-success text-white',
+      toastTimer: null
     }
   },
   computed: {
@@ -74,7 +90,6 @@ export default {
       this.cart = JSON.parse(localStorage.getItem('cart')) || [];
     },
 
-    // Mennyiség növelése
     increaseQuantity(id) {
       const item = this.cart.find(i => i.id === id);
       if (item) {
@@ -83,7 +98,6 @@ export default {
       }
     },
 
-    // Mennyiség csökkentése
     decreaseQuantity(id) {
       const item = this.cart.find(i => i.id === id);
       if (item) {
@@ -91,7 +105,6 @@ export default {
           item.quantity -= 1;
           this.saveCart();
         } else {
-          // Ha 1-ről csökkenti, megerősítést is kérhetünk, de most simán töröljük
           this.removeFromCart(id);
         }
       }
@@ -111,8 +124,29 @@ export default {
       localStorage.setItem('cart', JSON.stringify(this.cart));
     },
 
+    // A saját értesítés kezelőnk
+    triggerToast(message, type = 'success') {
+      this.toastMessage = message;
+
+      if (type === 'warning') {
+        this.toastClass = 'bg-warning text-dark';
+      } else if (type === 'error') {
+        this.toastClass = 'bg-danger text-white';
+      } else {
+        this.toastClass = 'bg-success text-white';
+      }
+
+      this.showToast = true;
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => {
+        this.showToast = false;
+      }, 3000);
+    },
+
     async checkout() {
-      if (this.cart.length === 0) return alert('A kosarad üres!');
+      if (this.cart.length === 0) {
+        return this.triggerToast('Üres kosár! Tegyél bele valamit a rendeléshez.', 'warning');
+      }
 
       try {
         await axios.post('/api/orders', {
@@ -120,11 +154,11 @@ export default {
           total_amount: this.totalPrice
         });
 
-        alert('Sikeres rendelés! Köszönjük a vásárlást.');
+        this.triggerToast('✅ Sikeres rendelés! Köszönjük a vásárlást.', 'success');
         this.clearCart();
       } catch (error) {
         console.error("Hiba a rendelésnél:", error);
-        alert('Hiba történt a rendelés leadásakor.');
+        this.triggerToast('❌ Hiba történt a rendelés leadásakor.', 'error');
       }
     },
 

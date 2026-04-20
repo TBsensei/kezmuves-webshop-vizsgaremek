@@ -8,6 +8,31 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    public function updateStatus(Request $request, $id)
+    {
+        // 1. Ellenőrizzük, hogy a kapott státusz érvényes-e
+        $request->validate([
+            'status' => 'required|string|in:pending,shipped,completed,cancelled'
+        ]);
+
+        // 2. Megkeressük a rendelést
+        $order = Order::findOrFail($id);
+
+        // 3. Frissítjük és elmentjük
+        $order->status = $request->status;
+        $order->save();
+
+        return response()->json(['message' => 'Státusz sikeresen frissítve', 'order' => $order]);
+    }
+
+    public function index()
+    {
+        // Lekérjük az összes rendelést a legújabbtól kezdve, hozzácsatolva a tételeket és a termékek adatait
+        $orders = Order::with('items.product')->orderBy('created_at', 'desc')->get();
+
+        return response()->json($orders);
+    }
+
     public function store(Request $request)
     {
         $request->validate([

@@ -5,10 +5,26 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import LoginView from '../views/auth/LoginView.vue'
 import CartView from '../views/CartView.vue'
+import AdminOrdersView from '../views/admin/AdminOrdersView.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
+        {
+            path: '/aszf',
+            name: 'aszf',
+            component: () => import('../views/info/AszfView.vue')
+        },
+        {
+            path: '/adatvedelem',
+            name: 'adatvedelem',
+            component: () => import('../views/info/AdatvedelemView.vue')
+        },
+        {
+            path: '/szallitas',
+            name: 'szallitas',
+            component: () => import('../views/info/SzallitasView.vue')
+        },
         {
             path: '/',
             name: 'home',
@@ -35,10 +51,10 @@ const router = createRouter({
         // VÉDETT OLDALAK (A meta mezőkkel jelöljük meg őket)
         // ==========================================
         {
-            path: '/cart',
-            name: 'cart',
-            component: () => import('../views/CartView.vue'),
-            meta: { requiresAuth: true } // Csak bejelentkezve érhető el!
+            path: '/admin/orders',
+            name: 'admin-orders',
+            component: AdminOrdersView,
+            meta: { requiresAuth: true }
         },
         {
             path: '/admin/products',

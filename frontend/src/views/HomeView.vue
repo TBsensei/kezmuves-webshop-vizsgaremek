@@ -1,6 +1,27 @@
 <template>
-  <div class="container mt-4">
-    <h2>Termékeink</h2>
+  <div class="container mt-4 mb-5">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+      <h2 class="mb-3 mb-md-0">Termékeink</h2>
+
+      <div class="input-group shadow-sm" style="max-width: 350px;">
+        <span class="input-group-text bg-white border-end-0">🔍</span>
+        <input
+            type="text"
+            class="form-control border-start-0 ps-0"
+            placeholder="Keresés név vagy leírás alapján..."
+            v-model="searchQuery"
+        >
+        <button
+            v-if="searchQuery"
+            class="btn btn-outline-secondary border-start-0"
+            type="button"
+            @click="searchQuery = ''"
+        >
+          ✖
+        </button>
+      </div>
+    </div>
 
     <div v-if="isLoading" class="text-center mt-5">
       <div class="spinner-border text-primary" role="status"></div>
@@ -11,9 +32,14 @@
       {{ errorMessage }}
     </div>
 
+    <div v-else-if="filteredProducts.length === 0" class="alert alert-warning mt-3 text-center shadow-sm">
+      <h5 class="mb-1">Hoppá!</h5>
+      Nincs olyan termék, ami megfelelne a keresésnek: <strong>"{{ searchQuery }}"</strong>
+    </div>
+
     <div v-else class="row mt-4">
-      <div class="col-md-4 mb-4" v-for="product in products" :key="product.id">
-        <div class="card h-100 shadow-sm">
+      <div class="col-md-4 mb-4" v-for="product in filteredProducts" :key="product.id">
+        <div class="card h-100 shadow-sm product-card">
           <img v-if="product.image_url" :src="product.image_url" class="card-img-top product-image" alt="Termék képe">
           <div v-else class="card-img-top bg-light text-muted d-flex align-items-center justify-content-center product-image">
             Nincs kép
@@ -55,9 +81,30 @@ export default {
       products: [],
       isLoading: false,
       errorMessage: '',
+      // Toast változók
       toastMessage: '',
       showToast: false,
-      toastTimer: null
+      toastTimer: null,
+      // Kereső változó
+      searchQuery: ''
+    }
+  },
+  computed: {
+    // Ez a függvény felelős a szűrésért. Valós időben fut le, amint a searchQuery megváltozik!
+    filteredProducts() {
+      if (!this.searchQuery) {
+        return this.products; // Ha üres a kereső, mindent mutat
+      }
+
+      const lowerCaseQuery = this.searchQuery.toLowerCase();
+
+      return this.products.filter(product => {
+        // Keresünk a névben és a leírásban is
+        const nameMatch = product.name.toLowerCase().includes(lowerCaseQuery);
+        const descMatch = product.description ? product.description.toLowerCase().includes(lowerCaseQuery) : false;
+
+        return nameMatch || descMatch;
+      });
     }
   },
   mounted() {
@@ -110,8 +157,23 @@ export default {
 
 <style scoped>
 .product-image {
-  height: 220px; /* Itt állíthatod be a képek fix magasságát */
-  object-fit: cover; /* Megakadályozza a kép torzulását, levágja a kilógó részeket */
+  height: 220px;
+  object-fit: cover;
   width: 100%;
+}
+
+/* Egy kis hover effekt a kártyáknak, hogy élőbb legyen az oldal */
+.product-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+/* Keresőmező fókusz stílus javítása */
+.form-control:focus {
+  box-shadow: none;
+  border-color: #ced4da;
 }
 </style>

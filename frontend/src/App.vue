@@ -1,28 +1,31 @@
 <template>
-  <div>
+  <div id="app" class="d-flex flex-column min-vh-100">
     <Navbar />
 
-    <main class="py-4">
-      <router-view></router-view>
+    <main class="flex-grow-1">
+      <router-view />
     </main>
+
+    <Footer />
   </div>
 </template>
 
 <script>
-// 1. Beimportáljuk a komponenst
 import Navbar from './components/Navbar.vue'
+import Footer from './components/Footer.vue' // Footer beimportálása
 
 export default {
   name: 'App',
   components: {
-    // 2. Regisztráljuk, hogy használni tudjuk a <template>-ben
-    Navbar
+    Navbar,
+    Footer // Komponens regisztrálása
   }
 }
 </script>
 
 <style>
+/* Ide jöhetnek a globális stílusok, ha vannak */
 body {
-  background-color: #f8f9fa;
+  background-color: #f8f9fa; /* Kellemes, világosszürke háttér az egész oldalnak */
 }
 </style>
