@@ -1,113 +1,68 @@
 <template>
-  <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
-            <h2 class="text-center mb-4">Bejelentkezés</h2>
+  <div class="container mt-5 mb-5 d-flex justify-content-center">
+    <div class="card shadow-sm p-4" style="max-width: 400px; width: 100%;">
+      <h3 class="text-center mb-4">Bejelentkezés</h3>
 
-            <div v-if="errorMessage" class="alert alert-danger" role="alert">
-              {{ errorMessage }}
-            </div>
+      <div v-if="errorMessage" class="alert alert-danger py-2">{{ errorMessage }}</div>
 
-            <form @submit.prevent="handleLogin">
-              <div class="mb-3">
-                <label for="email" class="form-label">E-mail cím</label>
-                <input
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    v-model="form.email"
-                    required
-                    placeholder="admin@kezmuves.hu"
-                >
-              </div>
-
-              <div class="mb-3">
-                <label for="password" class="form-label">Jelszó</label>
-                <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    v-model="form.password"
-                    required
-                    placeholder="********"
-                >
-              </div>
-
-              <div class="d-grid gap-2 mt-4">
-                <button type="submit" class="btn btn-primary btn-lg" :disabled="isLoading">
-                  <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  {{ isLoading ? 'Bejelentkezés...' : 'Belépés' }}
-                </button>
-              </div>
-            </form>
-          </div>
+      <form @submit.prevent="login">
+        <div class="mb-3">
+          <label class="form-label">E-mail cím</label>
+          <input type="email" class="form-control" v-model="email" required>
         </div>
+        <div class="mb-4">
+          <label class="form-label">Jelszó</label>
+          <input type="password" class="form-control" v-model="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100" :disabled="isLoading">
+          <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+          Belépés
+        </button>
+      </form>
+
+      <div class="mt-3 text-center small">
+        Nincs még fiókod? <router-link to="/register">Regisztrálj itt!</router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-// Beimportáljuk a korábban beállított Axios példányunkat
 import axios from '@/api/axios'
 
 export default {
   name: 'LoginView',
   data() {
     return {
-      form: {
-        email: '',
-        password: ''
-      },
+      email: '',
+      password: '',
       errorMessage: '',
       isLoading: false
     }
   },
   methods: {
-    async handleLogin() {
-      this.isLoading = true
-      this.errorMessage = ''
-
+    async login() {
+      this.isLoading = true;
+      this.errorMessage = '';
       try {
-        // 1. Lépés: CSRF süti lekérése a Laraveltől (Biztonsági lépés a Sanctumhoz)
-        await axios.get('/sanctum/csrf-cookie')
+        const response = await axios.post('/api/login', {
+          email: this.email,
+          password: this.password
+        });
 
-        // 2. Lépés: A bejelentkezési adatok elküldése a backendnek
-        const response = await axios.post('/api/login', this.form)
+        // --- ITT AZ ÖSSZEHANGOLÁS A TE ROUTEREDDEL ---
+        localStorage.setItem('access_token', response.data.access_token);
+        localStorage.setItem('user_role', response.data.user.role);
+        localStorage.setItem('user', JSON.stringify(response.data.user)); // Ez kell a név kiírásához
 
-        // 3. Lépés: Ha sikeres, elmentjük a kapott tokent a böngésző LocalStorage-ába
-        localStorage.setItem('access_token', response.data.access_token)
-        localStorage.setItem('user_role', response.data.user.role)
-
-        // 4. Lépés: Átirányítjuk a felhasználót a főoldalra (vagy az admin panelre)
-        this.$router.push('/')
-
-        // Frissítjük az oldalt, hogy a navigációs menü is észrevegye a belépést
-        setTimeout(() => {
-          window.location.reload()
-        }, 100)
-
+        window.location.href = '/';
       } catch (error) {
-        // Ha hibát kapunk (pl. 401 Unauthorized), kiírjuk a felhasználónak
-        if (error.response && error.response.status === 401) {
-          this.errorMessage = 'Hibás e-mail cím vagy jelszó!'
-        } else {
-          this.errorMessage = 'Hiba történt a szerverrel való kommunikáció során.'
-        }
-        console.error("Login hiba:", error)
+        this.errorMessage = 'Hibás e-mail cím vagy jelszó!';
+        console.error(error);
       } finally {
-        this.isLoading = false
+        this.isLoading = false;
       }
     }
   }
 }
 </script>
-
-<style scoped>
-.card {
-  border-radius: 15px;
-  border: none;
-}
-</style>

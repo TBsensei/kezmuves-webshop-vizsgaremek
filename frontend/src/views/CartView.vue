@@ -123,8 +123,19 @@ export default {
   },
   mounted() {
     this.loadCart();
+    this.loadUserData();
   },
   methods: {
+    loadUserData() {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        // Automatikusan beírjuk a nevét, ha be van lépve
+        this.customer.name = user.name || '';
+        this.customer.phone = user.phone || '';
+        this.customer.address = user.address || '';
+      }
+    },
     loadCart() {
       this.cart = JSON.parse(localStorage.getItem('cart')) || [];
     },

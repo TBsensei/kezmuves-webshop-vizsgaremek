@@ -36,6 +36,11 @@ const router = createRouter({
             component: LoginView
         },
         {
+            path: '/register',
+            name: 'register',
+            component: () => import('../views/auth/RegisterView.vue')
+        },
+        {
             path: '/products',
             name: 'products',
             // Lusta betöltés (Lazy loading): Csak akkor tölti be a fájlt, ha a user rákattint
@@ -45,6 +50,11 @@ const router = createRouter({
             path: '/cart',
             name: 'cart',
             component: CartView
+        },
+        {
+            path: '/profile',
+            name: 'profile',
+            component: () => import('../views/ProfileView.vue')
         },
 
         // ==========================================

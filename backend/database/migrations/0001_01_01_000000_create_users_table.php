@@ -18,8 +18,12 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            // A mi saját jogosultság oszlopunk
-            $table->enum('role', ['admin', 'customer'])->default('customer');
+
+            $table->string('role')->default('user'); // 'admin' vagy 'user'
+            $table->string('phone')->nullable();     // Nem kötelező megadni regisztrációkor
+            $table->string('address')->nullable();   // Nem kötelező megadni regisztrációkor
+            // ------------------------------------
+
             $table->rememberToken();
             $table->timestamps();
         });

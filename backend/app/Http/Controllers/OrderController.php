@@ -26,10 +26,12 @@ class OrderController extends Controller
             'shipping_address' => 'required|string'
         ]);
 
-        // Létrehozzuk a fő rendelést a kapott címmel
+        // Létrehozzuk a fő rendelést
         $order = Order::create([
+            // Ha be van jelentkezve, elmentjük az ID-ját (a Sanctum kideríti a tokenből), ha nincs, akkor null marad
+            'user_id' => auth('sanctum')->id(),
             'total_amount' => $request->total_amount,
-            'shipping_address' => $request->shipping_address, // Itt mentjük el a valós címet!
+            'shipping_address' => $request->shipping_address,
             'status' => 'pending'
         ]);
 
@@ -58,5 +60,16 @@ class OrderController extends Controller
         $order->save();
 
         return response()->json(['message' => 'Státusz sikeresen frissítve', 'order' => $order]);
+    }
+    // A bejelentkezett vásárló SAJÁT rendeléseinek lekérése
+    public function myOrders(Request $request)
+    {
+        // Csak azokat a rendeléseket kérjük le, ahol a user_id megegyezik a kérdező ID-jával
+        $orders = Order::with('items.product')
+            ->where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($orders);
     }
 }

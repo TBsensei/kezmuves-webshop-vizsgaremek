@@ -1,22 +1,24 @@
-import axios from 'axios'
+import axios from 'axios';
 
-axios.defaults.baseURL = 'http://localhost:8000'
-axios.defaults.withCredentials = true
+const instance = axios.create({
+    // A backendetek címe
+    baseURL: 'http://localhost:8000',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+});
 
-// ==========================================
-// AXIOS INTERCEPTOR (A "Postás")
-// Minden egyes hálózati kérés előtt lefut, és ráragasztja a Tokent a fejlésre!
-// ==========================================
-axios.interceptors.request.use(config => {
-    // 1. Kiolvassuk a tokent a memóriából
+// Ez fűzi hozzá a tokent minden kéréshez
+instance.interceptors.request.use(config => {
+    // A te routered az access_token nevet használja!
     const token = localStorage.getItem('access_token');
-
-    // 2. Ha van tokenünk, beletesszük az "Authorization" fejlécbe
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
-
     return config;
+}, error => {
+    return Promise.reject(error);
 });
 
-export default axios
+export default instance;
