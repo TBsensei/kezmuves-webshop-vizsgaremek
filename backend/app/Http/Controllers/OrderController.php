@@ -8,45 +8,32 @@ use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
-    public function updateStatus(Request $request, $id)
-    {
-        // 1. Ellenőrizzük, hogy a kapott státusz érvényes-e
-        $request->validate([
-            'status' => 'required|string|in:pending,shipped,completed,cancelled'
-        ]);
-
-        // 2. Megkeressük a rendelést
-        $order = Order::findOrFail($id);
-
-        // 3. Frissítjük és elmentjük
-        $order->status = $request->status;
-        $order->save();
-
-        return response()->json(['message' => 'Státusz sikeresen frissítve', 'order' => $order]);
-    }
-
+    // 1. Összes rendelés lekérdezése az Adminhoz
     public function index()
     {
-        // Lekérjük az összes rendelést a legújabbtól kezdve, hozzácsatolva a tételeket és a termékek adatait
+        // Lekérjük a rendeléseket, a hozzájuk tartozó tételekkel és termékadatokkal együtt, a legújabbtól lefelé
         $orders = Order::with('items.product')->orderBy('created_at', 'desc')->get();
-
         return response()->json($orders);
     }
 
+    // 2. Új rendelés elmentése a Kosárból
     public function store(Request $request)
     {
+        // Validáljuk a Vue-ból beérkező adatokat
         $request->validate([
             'cart' => 'required|array',
-            'total_amount' => 'required|integer'
+            'total_amount' => 'required|numeric',
+            'shipping_address' => 'required|string'
         ]);
 
+        // Létrehozzuk a fő rendelést a kapott címmel
         $order = Order::create([
-            'user_id' => $request->user('sanctum') ? $request->user('sanctum')->id : null,
             'total_amount' => $request->total_amount,
-            'status' => 'pending',
-            'shipping_address' => 'Fizetésnél megadott cím'
+            'shipping_address' => $request->shipping_address, // Itt mentjük el a valós címet!
+            'status' => 'pending'
         ]);
 
+        // Végigmegyünk a kosár tartalmán, és lementjük a tételeket az order_items táblába
         foreach ($request->cart as $item) {
             OrderItem::create([
                 'order_id' => $order->id,
@@ -56,6 +43,20 @@ class OrderController extends Controller
             ]);
         }
 
-        return response()->json(['message' => 'Sikeres rendelés!'], 201);
+        return response()->json(['message' => 'Sikeres rendelés', 'order' => $order], 201);
+    }
+
+    // 3. Státusz frissítése az Adminban (Függőben -> Kiszállítva, stb.)
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string|in:pending,shipped,completed,cancelled'
+        ]);
+
+        $order = Order::findOrFail($id);
+        $order->status = $request->status;
+        $order->save();
+
+        return response()->json(['message' => 'Státusz sikeresen frissítve', 'order' => $order]);
     }
 }
