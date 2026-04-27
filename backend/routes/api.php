@@ -38,4 +38,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // (A Vue frontend is le fogja tiltani az oldalt, de a biztonság kedvéért itt is jó tudni róluk)
     Route::get('/orders', [OrderController::class, 'index']);
     Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus']);
+
+    Route::post('/products', [ProductController::class, 'store']);       // Új termék mentése
+    Route::put('/products/{id}', [ProductController::class, 'update']);  // Meglévő szerkesztése
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']); // Törlés
 });

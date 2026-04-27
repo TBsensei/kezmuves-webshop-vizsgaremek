@@ -4,12 +4,12 @@
 
     <div class="row">
       <div class="col-md-4 mb-4">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm border-0">
           <div class="card-header bg-primary text-white fw-bold">Adataim</div>
-          <div class="card-body" v-if="user">
-            <p><strong>Név:</strong> {{ user.name }}</p>
-            <p><strong>E-mail:</strong> {{ user.email }}</p>
-            <p><strong>Szerepkör:</strong>
+          <div class="card-body bg-light" v-if="user">
+            <p class="mb-1"><strong>Név:</strong> {{ user.name }}</p>
+            <p class="mb-1"><strong>E-mail:</strong> {{ user.email }}</p>
+            <p class="mb-0"><strong>Szerepkör:</strong>
               <span class="badge" :class="user.role === 'admin' ? 'bg-danger' : 'bg-secondary'">
                 {{ user.role === 'admin' ? 'Adminisztrátor' : 'Vásárló' }}
               </span>
@@ -19,7 +19,7 @@
       </div>
 
       <div class="col-md-8">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm border-0">
           <div class="card-header bg-dark text-white fw-bold">📦 Korábbi rendeléseim</div>
           <div class="card-body p-0">
 
@@ -35,21 +35,46 @@
               <table class="table table-hover mb-0 align-middle">
                 <thead class="table-light">
                 <tr>
-                  <th>Rendelésszám</th>
+                  <th>#</th>
                   <th>Dátum</th>
                   <th>Összeg</th>
                   <th>Státusz</th>
+                  <th class="text-end">Művelet</th>
                 </tr>
                 </thead>
-                <tbody>
-                <tr v-for="order in orders" :key="order.id">
-                  <td class="fw-bold">#{{ order.id }}</td>
+                <tbody v-for="order in orders" :key="order.id">
+                <tr>
+                  <td class="fw-bold">{{ order.id }}</td>
                   <td>{{ formatDate(order.created_at) }}</td>
-                  <td>{{ formatPrice(order.total_amount) }} Ft</td>
+                  <td class="fw-bold">{{ formatPrice(order.total_amount) }} Ft</td>
                   <td>
                       <span class="badge" :class="getStatusColor(order.status)">
                         {{ getStatusText(order.status) }}
                       </span>
+                  </td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary" @click="toggleDetails(order.id)">
+                      {{ expandedOrderId === order.id ? 'Vissza' : 'Részletek ⬇️' }}
+                    </button>
+                  </td>
+                </tr>
+
+                <tr v-if="expandedOrderId === order.id" class="table-light">
+                  <td colspan="5" class="p-4">
+                    <h6 class="fw-bold mb-3">Rendelés tartalma:</h6>
+                    <ul class="list-group list-group-flush shadow-sm">
+                      <li v-for="item in order.items" :key="item.id" class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                        <div>
+                          <span class="fw-bold">{{ item.product ? item.product.name : 'Törölt termék' }}</span>
+                          <span class="text-muted ms-2">({{ formatPrice(item.price) }} Ft / db)</span>
+                        </div>
+                        <span class="badge bg-secondary rounded-pill">{{ item.quantity }} db</span>
+                      </li>
+                    </ul>
+
+                    <div class="mt-3 small text-muted">
+                      <strong>Szállítási adatok:</strong> {{ order.shipping_address }}
+                    </div>
                   </td>
                 </tr>
                 </tbody>
@@ -72,7 +97,8 @@ export default {
     return {
       user: null,
       orders: [],
-      isLoading: true
+      isLoading: true,
+      expandedOrderId: null // Ebben tároljuk, hogy épp melyik rendelés van lenyitva
     }
   },
   mounted() {
@@ -85,7 +111,6 @@ export default {
       if (userStr) {
         this.user = JSON.parse(userStr);
       } else {
-        // Ha nincs belépve, kidobjuk a loginra
         this.$router.push('/login');
       }
     },
@@ -98,6 +123,14 @@ export default {
         console.error("Hiba a rendelések lekérésekor:", error);
       } finally {
         this.isLoading = false;
+      }
+    },
+    // Ez a függvény nyitja össze/csukja a részleteket
+    toggleDetails(orderId) {
+      if (this.expandedOrderId === orderId) {
+        this.expandedOrderId = null; // Ha már nyitva volt, becsukjuk
+      } else {
+        this.expandedOrderId = orderId; // Egyébként kinyitjuk
       }
     },
     formatPrice(price) {
