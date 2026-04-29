@@ -3,32 +3,37 @@
 
     <div class="row mb-4 align-items-center">
       <div class="col-md-6">
-        <h2 class="mb-0">🛍️ Kínálatunk</h2>
+        <h2 class="mb-0"><i class="bi bi-box-seam text-primary me-2"></i> Kínálatunk</h2>
       </div>
       <div class="col-md-6 mt-3 mt-md-0">
-        <input
-            type="text"
-            class="form-control form-control-lg border-primary shadow-sm"
-            placeholder="🔍 Keresés a termékek között..."
-            v-model="searchQuery"
-        >
+        <div class="input-group input-group-lg shadow-sm">
+          <span class="input-group-text bg-white border-primary border-end-0">
+            <i class="bi bi-search text-muted"></i>
+          </span>
+          <input
+              type="text"
+              class="form-control border-primary border-start-0 ps-0"
+              placeholder="Keresés a termékek között..."
+              v-model="searchQuery"
+          >
+        </div>
       </div>
     </div>
 
     <div class="row mb-4" v-if="uniqueCategories.length > 0">
       <div class="col-12 d-flex flex-wrap gap-2">
         <button
-            class="btn rounded-pill shadow-sm"
+            class="btn rounded-pill shadow-sm transition-all"
             :class="selectedCategory === '' ? 'btn-primary fw-bold' : 'btn-outline-primary'"
             @click="selectedCategory = ''"
         >
-          Összes termék
+          <i class="bi bi-collection me-1"></i> Összes termék
         </button>
 
         <button
             v-for="category in uniqueCategories"
             :key="category"
-            class="btn rounded-pill shadow-sm"
+            class="btn rounded-pill shadow-sm transition-all"
             :class="selectedCategory === category ? 'btn-primary fw-bold' : 'btn-outline-primary'"
             @click="selectedCategory = category"
         >
@@ -42,36 +47,18 @@
       <p class="mt-2 text-muted">Termékek betöltése...</p>
     </div>
 
-    <div v-else-if="filteredProducts.length === 0" class="alert alert-warning text-center shadow-sm py-4">
-      <div class="fs-1 mb-2">🕵️‍♂️</div>
-      Sajnos nem találtunk a keresésnek megfelelő terméket ebben a kategóriában.
+    <div v-else-if="filteredProducts.length === 0" class="alert alert-warning text-center shadow-sm py-5 border-warning">
+      <div class="fs-1 mb-2"><i class="bi bi-binoculars text-warning"></i></div>
+      <h4 class="fw-bold">Nincs találat</h4>
+      <p class="mb-0 text-muted">Sajnos nem találtunk a keresésnek megfelelő terméket.</p>
     </div>
 
     <div v-else class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
       <div class="col" v-for="product in filteredProducts" :key="product.id">
-        <div class="card h-100 shadow-sm product-card border-0">
-
-          <img
-              :src="getImageUrl(product.image_url)"
-              class="card-img-top"
-              :alt="product.name"
-              style="height: 250px; object-fit: cover;"
-          >
-
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title fw-bold text-dark">{{ product.name }}</h5>
-            <span v-if="product.category" class="badge bg-secondary mb-2 align-self-start">{{ product.category }}</span>
-
-            <p class="card-text text-muted flex-grow-1">{{ product.description }}</p>
-
-            <div class="d-flex justify-content-between align-items-center mt-3">
-              <span class="fs-5 fw-bold text-success">{{ formatPrice(product.price) }} Ft</span>
-              <button class="btn btn-primary shadow-sm px-4" @click="addToCart(product)">
-                🛒 Kosárba
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProductCard
+            :product="product"
+            @add-to-cart="handleAddToCart"
+        />
       </div>
     </div>
 
@@ -79,7 +66,7 @@
       <div class="toast show align-items-center text-white bg-success border-0 shadow-lg" role="alert">
         <div class="d-flex">
           <div class="toast-body fw-bold fs-6">
-            ✅ Termék sikeresen a kosárba helyezve!
+            <i class="bi bi-check-circle-fill me-2"></i> Termék sikeresen a kosárba helyezve!
           </div>
           <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="showToast = false"></button>
         </div>
@@ -90,41 +77,42 @@
 
 <script>
 import axios from '@/api/axios'
+// Beimportáljuk a kártya komponenst
+import ProductCard from '@/components/ProductCard.vue'
 
 export default {
   name: 'ProductsView',
+  // Regisztráljuk a komponenst, hogy használhassuk a template-ben
+  components: {
+    ProductCard
+  },
   data() {
     return {
       products: [],
       searchQuery: '',
-      selectedCategory: '', // Ez tárolja, hogy épp melyik gombra kattintottunk
+      selectedCategory: '',
       isLoading: true,
       showToast: false,
       toastTimer: null
     }
   },
   computed: {
-    // 1. Dinamikusan kinyerjük az egyedi kategóriákat a termékekből
+    // Egyedi kategóriák kigyűjtése az aktív termékekből
     uniqueCategories() {
-      // Csak azokat a kategóriákat vesszük, amik ki vannak töltve
       const categories = this.products
           .map(p => p.category)
           .filter(category => category && category.trim() !== '');
 
-      // A Set segítségével kiszűrjük a duplikációkat (pl. ha 5 "Ékszer" van, csak egyszer jelenik meg)
       return [...new Set(categories)].sort();
     },
-
-    // 2. Kombinált szűrő: Kategória + Szöveges kereső
+    // Szűrt lista (Kereső + Kategória gombok)
     filteredProducts() {
       let result = this.products;
 
-      // Ha van kiválasztott kategória, először aszerint szűrünk
       if (this.selectedCategory !== '') {
         result = result.filter(product => product.category === this.selectedCategory);
       }
 
-      // Utána szűrünk a beírt szövegre (ha van)
       if (this.searchQuery !== '') {
         const lowerCaseQuery = this.searchQuery.toLowerCase();
         result = result.filter(product =>
@@ -146,12 +134,13 @@ export default {
         const response = await axios.get('/api/products');
         this.products = response.data;
       } catch (error) {
-        console.error('Hiba a termékek lekérésekor:', error);
+        console.error('API hiba:', error);
       } finally {
         this.isLoading = false;
       }
     },
-    addToCart(product) {
+    // A kártya komponenstől érkező esemény lekezelése
+    handleAddToCart(product) {
       let cart = JSON.parse(localStorage.getItem('cart')) || [];
       const existingItem = cart.find(item => item.id === product.id);
 
@@ -167,29 +156,33 @@ export default {
       }
 
       localStorage.setItem('cart', JSON.stringify(cart));
-
+      this.triggerToast();
+    },
+    triggerToast() {
       this.showToast = true;
       if (this.toastTimer) clearTimeout(this.toastTimer);
       this.toastTimer = setTimeout(() => this.showToast = false, 3000);
-    },
-    getImageUrl(url) {
-      if (!url) return 'https://placehold.co/600x400/eeeeee/999999?text=Nincs+kép';
-      if (url.startsWith('http')) return url;
-      return 'http://localhost:8000' + url;
-    },
-    formatPrice(price) {
-      return new Intl.NumberFormat('hu-HU').format(price);
     }
   }
 }
 </script>
 
 <style scoped>
-.product-card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+/* Egy kis extra interakció a gombokhoz */
+.transition-all {
+  transition: all 0.2s ease-in-out;
 }
-.product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 1rem 3rem rgba(0,0,0,.175)!important;
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Keresőmező fókusz stílus */
+.input-group .form-control:focus {
+  box-shadow: none;
+  border-color: #0d6efd;
+}
+.input-group:focus-within .input-group-text {
+  border-color: #0d6efd;
 }
 </style>

@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Adatbázis táblák létrehozása.
      */
     public function up(): void
     {
-        // 1. A mi kibővített Users táblánk
+        // Felhasználók táblája kiegészítve webshop funkciókkal
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
@@ -19,23 +19,23 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
 
-            $table->string('role')->default('user'); // 'admin' vagy 'user'
-            $table->string('phone')->nullable();     // Nem kötelező megadni regisztrációkor
-            $table->string('address')->nullable();   // Nem kötelező megadni regisztrációkor
-            // ------------------------------------
+            // Jogosultság és kapcsolattartási adatok
+            $table->string('role')->default('user')->index(); // Indexelve a gyorsabb lekéréshez
+            $table->string('phone')->nullable();
+            $table->string('address', 500)->nullable(); // Kicsit hosszabb címeknek is legyen hely
 
             $table->rememberToken();
             $table->timestamps();
         });
 
-        // 2. A Laravel gyári jelszó-visszaállító táblája
+        // Jelszó visszaállításhoz szükséges tokenek
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
             $table->string('token');
             $table->timestamp('created_at')->nullable();
         });
 
-        // 3. A hiányzó Sessions tábla, amit a hibaüzenet keresett
+        // Munkamenetek (Session) tárolása - Laravel 11 kompatibilis
         Schema::create('sessions', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->nullable()->index();
@@ -47,7 +47,7 @@ return new class extends Migration
     }
 
     /**
-     * Reverse the migrations.
+     * Táblák eltávolítása (Rollback esetén).
      */
     public function down(): void
     {

@@ -4,88 +4,67 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage; // Ez kell a fájlkezeléshez!
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
-    // 1. Összes termék lekérése
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json(Product::all());
+        return response()->json(Product::latest()->get(), 200);
     }
 
-    // 2. Új termék mentése KÉPFELTÖLTÉSSEL
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'price'       => 'required|numeric|min:0',
             'description' => 'nullable|string',
-            'category' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048' // Maximum 2MB-os kép
+            'category'    => 'nullable|string|max:100',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048'
         ]);
 
-        $data = $request->except('image');
-
-        // Ha kaptunk fájlt a Vue-tól...
         if ($request->hasFile('image')) {
-            // Lementjük a 'products' mappába, és megkapjuk a nevét
             $path = $request->file('image')->store('products', 'public');
-            // Ezt az utat mentjük be az adatbázisba (pl. /storage/products/xyz.jpg)
-            $data['image_url'] = '/storage/' . $path;
+            $validated['image_url'] = '/storage/' . $path;
         }
 
-        $product = Product::create($data);
-
-        return response()->json(['message' => 'Termék sikeresen hozzáadva!', 'product' => $product], 201);
+        $product = Product::create($validated);
+        return response()->json(['success' => true, 'product' => $product], 201);
     }
 
-    // 3. Termék módosítása KÉPCSERÉVEL
-    public function update(Request $request, $id)
+    public function update(Request $request, $id): JsonResponse
     {
         $product = Product::findOrFail($id);
-
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
             'category' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+            'image' => 'nullable|image|max:2048'
         ]);
 
-        $data = $request->except('image');
-
-        // Ha a módosításnál új képet töltöttek fel...
         if ($request->hasFile('image')) {
-            // Töröljük a régi képet a szerverről (ha volt)
-            if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-                $oldPath = str_replace('/storage/', '', $product->image_url);
-                Storage::disk('public')->delete($oldPath);
-            }
-
-            // Lementjük az újat
+            $this->deleteImage($product->image_url);
             $path = $request->file('image')->store('products', 'public');
-            $data['image_url'] = '/storage/' . $path;
+            $validated['image_url'] = '/storage/' . $path;
         }
 
-        $product->update($data);
-
-        return response()->json(['message' => 'Termék sikeresen frissítve!', 'product' => $product]);
+        $product->update($validated);
+        return response()->json(['success' => true, 'product' => $product]);
     }
 
-    // 4. Termék törlése
-    public function destroy($id)
+    public function destroy($id): JsonResponse
     {
         $product = Product::findOrFail($id);
-
-        // Törlés előtt letöröljük a képet is a szerverről
-        if ($product->image_url && str_starts_with($product->image_url, '/storage/')) {
-            $oldPath = str_replace('/storage/', '', $product->image_url);
-            Storage::disk('public')->delete($oldPath);
-        }
-
+        $this->deleteImage($product->image_url);
         $product->delete();
+        return response()->json(['success' => true]);
+    }
 
-        return response()->json(['message' => 'Termék törölve!']);
+    private function deleteImage(?string $imageUrl): void
+    {
+        if ($imageUrl && str_starts_with($imageUrl, '/storage/')) {
+            Storage::disk('public')->delete(str_replace('/storage/', '', $imageUrl));
+        }
     }
 }

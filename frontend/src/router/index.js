@@ -1,15 +1,36 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// Alap oldalak beimportálása (Amik rögtön betöltődnek)
-// A fájlneveket és mappákat majd igazítsd a sajátjaidhoz, ha máshogy nevezted el őket!
-import HomeView from '../views/HomeView.vue'
-import LoginView from '../views/auth/LoginView.vue'
-import CartView from '../views/CartView.vue'
-import AdminOrdersView from '../views/admin/AdminOrdersView.vue'
-
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
+
+    // Automatikus görgetés az oldal tetejére útvonalváltáskor
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition;
+        } else {
+            return { top: 0 };
+        }
+    },
+
     routes: [
+        // ==========================================
+        // PUBLIKUS / INFORMÁCIÓS OLDALAK
+        // ==========================================
+        {
+            path: '/',
+            name: 'home',
+            component: () => import('../views/HomeView.vue')
+        },
+        {
+            path: '/products',
+            name: 'products',
+            component: () => import('../views/ProductsView.vue')
+        },
+        {
+            path: '/cart',
+            name: 'cart',
+            component: () => import('../views/CartView.vue')
+        },
         {
             path: '/aszf',
             name: 'aszf',
@@ -25,62 +46,65 @@ const router = createRouter({
             name: 'szallitas',
             component: () => import('../views/info/SzallitasView.vue')
         },
-        {
-            path: '/',
-            name: 'home',
-            component: HomeView
-        },
+
+        // ==========================================
+        // HITELESÍTÉSI OLDALAK (Csak kijelentkezve)
+        // ==========================================
         {
             path: '/login',
             name: 'login',
-            component: LoginView
+            component: () => import('../views/auth/LoginView.vue'),
+            meta: { requiresGuest: true }
         },
         {
             path: '/register',
             name: 'register',
-            component: () => import('../views/auth/RegisterView.vue')
-        },
-        {
-            path: '/products',
-            name: 'products',
-            // Lusta betöltés (Lazy loading): Csak akkor tölti be a fájlt, ha a user rákattint
-            component: () => import('../views/ProductsView.vue')
-        },
-        {
-            path: '/cart',
-            name: 'cart',
-            component: CartView
-        },
-        {
-            path: '/profile',
-            name: 'profile',
-            component: () => import('../views/ProfileView.vue')
+            component: () => import('../views/auth/RegisterView.vue'),
+            meta: { requiresGuest: true }
         },
 
         // ==========================================
-        // VÉDETT OLDALAK (A meta mezőkkel jelöljük meg őket)
+        // VÉDETT OLDALAK (Vásárlói profil)
+        // ==========================================
+        {
+            path: '/profile',
+            name: 'profile',
+            component: () => import('../views/ProfileView.vue'),
+            meta: { requiresAuth: true }
+        },
+
+        // ==========================================
+        // ADMINISZTRÁTORI OLDALAK
         // ==========================================
         {
             path: '/admin/orders',
             name: 'admin-orders',
-            component: AdminOrdersView,
-            meta: { requiresAuth: true }
+            component: () => import('../views/admin/AdminOrdersView.vue'),
+            meta: { requiresAuth: true, requiresAdmin: true }
         },
         {
             path: '/admin/products',
             name: 'admin-products',
             component: () => import('../views/admin/AdminProductsView.vue'),
-            meta: { requiresAuth: true, requiresAdmin: true } // Csak ADMIN jogosultsággal!
+            meta: { requiresAuth: true, requiresAdmin: true }
+        },
+        {
+            path: '/admin/dashboard',
+            name: 'admin-dashboard',
+            component: () => import('../views/admin/AdminDashboardView.vue'),
+            meta: { requiresAuth: true, requiresAdmin: true }
         },
 
-        // Hibaoldalak
+        // ==========================================
+        // HIBAOLDALAK (403, 404)
+        // ==========================================
         {
             path: '/not-authorized',
             name: 'not-authorized',
             component: () => import('../views/errors/NotAuthorizedView.vue')
         },
         {
-            path: '/:pathMatch(.*)*', // Ha olyan URL-t ír be, ami nem létezik (404)
+            path: '/:pathMatch(.*)*',
             name: 'not-found',
             component: () => import('../views/errors/NotFoundView.vue')
         }
@@ -88,28 +112,26 @@ const router = createRouter({
 })
 
 // ==========================================
-// A "KAPUŐR" (Navigation Guard)
-// Minden egyes oldalváltás előtt lefut, és ellenőrzi a jogosultságot!
+// GLOBÁLIS JOGOSULTSÁGKEZELÉS (Navigation Guard)
 // ==========================================
 router.beforeEach((to, from, next) => {
-    // 1. Megnézzük a böngésző memóriáját: van-e tokenünk és mi a szerepkörünk?
     const isAuthenticated = !!localStorage.getItem('access_token');
     const userRole = localStorage.getItem('user_role');
 
-    // 2. Ha az oldal bejelentkezést igényel (requiresAuth), de nincs tokenünk -> Irány a Login!
     if (to.meta.requiresAuth && !isAuthenticated) {
+        // Ha hitelesítés kell, de nincs token
         next({ name: 'login' });
     }
-    // 3. Ha az oldal kimondottan Admin jogot kér (requiresAdmin), de a user nem admin -> 403-as hiba
     else if (to.meta.requiresAdmin && userRole !== 'admin') {
+        // Ha admin jog kell, de a felhasználó nem admin
         next({ name: 'not-authorized' });
     }
-    // 4. Ha az illető be van jelentkezve, de a Login oldalra akar menni -> Dobjuk a Kezdőlapra
-    else if (to.name === 'login' && isAuthenticated) {
+    else if (to.meta.requiresGuest && isAuthenticated) {
+        // Ha csak vendégek láthatják (pl. login), de már be van jelentkezve
         next({ name: 'home' });
     }
-    // 5. Ha minden rendben van, engedjük tovább a kért oldalra!
     else {
+        // Ha minden jogosultság rendben van, mehet tovább
         next();
     }
 });

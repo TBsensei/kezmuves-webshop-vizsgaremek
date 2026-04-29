@@ -7,20 +7,23 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Kategóriák tábla létrehozása.
      */
     public function up(): void
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+
+            // Egyedi név, indexelve a gyors kereséshez
+            $table->string('name')->unique()->index();
+
             $table->text('description')->nullable();
             $table->timestamps();
         });
     }
 
     /**
-     * Reverse the migrations.
+     * Tábla törlése.
      */
     public function down(): void
     {

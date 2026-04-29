@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -12,9 +13,7 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
+     * Tömegesen módosítható mezők.
      */
     protected $fillable = [
         'name',
@@ -22,13 +21,11 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
-        'address'
+        'address',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
+     * JSON válaszokból elrejtett mezők (biztonság).
      */
     protected $hidden = [
         'password',
@@ -36,12 +33,27 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
+     * Adat típuskonverziók (Casting).
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'password' => 'hashed', // Automatikus hashelés kezelése Laravel 10+ alatt
     ];
+
+    /**
+     * Kapcsolat: Egy felhasználóhoz több rendelés tartozhat.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Segédmetódus az adminisztrátori jogosultság ellenőrzéséhez.
+     * Ez a "Clean Code" egyik alapköve a jogosultságkezelésben.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
 }

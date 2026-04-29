@@ -1,12 +1,19 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router' // 1. Beimportáljuk a routert, amit az előbb megírtunk
+import router from './router'
 
-// Bootstrap CSS és JS
+/**
+ * Bootstrap 5 és Bootstrap Icons importálása
+ * (npm install bootstrap bootstrap-icons parancsok után használható)
+ */
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+import 'bootstrap-icons/font/bootstrap-icons.css'
 
 const app = createApp(App)
 
-app.use(router) // 2. Megmondjuk a Vue alkalmazásnak, hogy használja a routert
+// Router példány hozzáadása az alkalmazáshoz
+app.use(router)
+
+// Az alkalmazás csatolása a DOM-hoz
 app.mount('#app')

@@ -3,7 +3,11 @@
     <Navbar />
 
     <main class="flex-grow-1">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="fade" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </main>
 
     <Footer />
@@ -12,20 +16,33 @@
 
 <script>
 import Navbar from './components/Navbar.vue'
-import Footer from './components/Footer.vue' // Footer beimportálása
+import Footer from './components/Footer.vue'
 
 export default {
   name: 'App',
   components: {
     Navbar,
-    Footer // Komponens regisztrálása
+    Footer
   }
 }
 </script>
 
 <style>
-/* Ide jöhetnek a globális stílusok, ha vannak */
+/* Globális beállítások */
 body {
-  background-color: #f8f9fa; /* Kellemes, világosszürke háttér az egész oldalnak */
+  background-color: #f8f9fa; /* Bootstrap light szürke háttér */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* A router-view áttűnési animációjának CSS-e */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease-out;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

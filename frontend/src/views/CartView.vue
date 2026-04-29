@@ -1,14 +1,14 @@
 <template>
   <div class="container mt-4 mb-5">
-    <h2>🛒 Kosár tartalma</h2>
+    <h2><i class="bi bi-cart3 text-primary"></i> Kosár tartalma</h2>
 
-    <div v-if="cart.length === 0" class="alert alert-info mt-3">
-      A kosarad jelenleg üres. Nézz szét a termékeink között!
+    <div v-if="cart.length === 0" class="alert alert-info mt-3 shadow-sm">
+      <i class="bi bi-info-circle me-2"></i> A kosarad jelenleg üres. Nézz szét a termékeink között!
     </div>
 
     <div v-else>
       <div class="table-responsive mt-3">
-        <table class="table table-hover align-middle">
+        <table class="table table-hover align-middle border shadow-sm">
           <thead class="table-light">
           <tr>
             <th>Termék</th>
@@ -24,31 +24,54 @@
             <td>{{ formatPrice(item.price) }} Ft</td>
             <td>
               <div class="input-group input-group-sm">
-                <button class="btn btn-outline-secondary" type="button" @click="decreaseQuantity(item.id)">-</button>
+                <button class="btn btn-outline-secondary" type="button" @click="decreaseQuantity(item.id)">
+                  <i class="bi bi-dash"></i>
+                </button>
                 <input type="text" class="form-control text-center fw-bold" :value="item.quantity" readonly>
-                <button class="btn btn-outline-secondary" type="button" @click="increaseQuantity(item.id)">+</button>
+                <button class="btn btn-outline-secondary" type="button" @click="increaseQuantity(item.id)">
+                  <i class="bi bi-plus"></i>
+                </button>
               </div>
             </td>
             <td>{{ formatPrice(item.price * item.quantity) }} Ft</td>
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-danger" @click="removeFromCart(item.id)">🗑️ Törlés</button>
+              <button class="btn btn-sm btn-outline-danger" @click="removeFromCart(item.id)">
+                <i class="bi bi-trash"></i> Törlés
+              </button>
             </td>
           </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 p-3 bg-light rounded shadow-sm border">
         <h4 class="mb-3 mb-md-0">Végösszeg: <span class="text-success fw-bold">{{ formatPrice(totalPrice) }} Ft</span></h4>
         <div>
-          <button class="btn btn-outline-secondary me-2" @click="clearCart">Kosár ürítése</button>
-          <button v-if="!showForm" class="btn btn-primary" @click="showForm = true">Tovább a rendeléshez ➔</button>
+          <button class="btn btn-outline-secondary me-2" @click="clearCart">
+            <i class="bi bi-cart-x"></i> Kosár ürítése
+          </button>
+
+          <button v-if="isLoggedIn && !showForm" class="btn btn-primary" @click="showForm = true">
+            Tovább a rendeléshez <i class="bi bi-arrow-right"></i>
+          </button>
         </div>
       </div>
 
-      <div v-if="showForm" class="card mt-4 shadow border-primary">
+      <div v-if="!isLoggedIn" class="alert alert-warning mt-4 shadow-sm border-warning">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Figyelem!</h5>
+            <p class="mb-0">A rendelés leadásához be kell jelentkezned vagy regisztrálnod kell egy fiókot.</p>
+          </div>
+          <router-link to="/login" class="btn btn-warning">
+            <i class="bi bi-box-arrow-in-right"></i> Bejelentkezés
+          </router-link>
+        </div>
+      </div>
+
+      <div v-if="showForm && isLoggedIn" class="card mt-4 shadow border-primary">
         <div class="card-header bg-primary text-white fw-bold">
-          Szállítási adatok megadása
+          <i class="bi bi-truck"></i> Szállítási adatok megadása
         </div>
         <div class="card-body">
           <form @submit.prevent="submitOrder">
@@ -74,8 +97,13 @@
               <input type="text" class="form-control" v-model="customer.address" required placeholder="Pl.: 1234 Budapest, Fő utca 1.">
             </div>
             <div class="d-flex justify-content-end mt-3">
-              <button type="button" class="btn btn-outline-secondary me-2" @click="showForm = false">Mégse</button>
-              <button type="submit" class="btn btn-success">✅ Megrendelés véglegesítése</button>
+              <button type="button" class="btn btn-outline-secondary me-2" @click="showForm = false">
+                <i class="bi bi-x-circle"></i> Mégse
+              </button>
+              <button type="submit" class="btn btn-success" :disabled="isProcessing">
+                <span v-if="isProcessing" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                <i v-else class="bi bi-check2-circle"></i> Megrendelés véglegesítése
+              </button>
             </div>
           </form>
         </div>
@@ -86,7 +114,7 @@
       <div class="toast show align-items-center border-0 shadow" :class="toastClass" role="alert">
         <div class="d-flex text-white" :class="{'text-dark': toastClass.includes('warning')}">
           <div class="toast-body fw-bold">
-            {{ toastMessage }}
+            <i class="bi" :class="toastClass.includes('danger') ? 'bi-x-circle' : 'bi-check-circle'"></i> {{ toastMessage }}
           </div>
           <button type="button" class="btn-close me-2 m-auto" :class="{'btn-close-white': !toastClass.includes('warning')}" @click="showToast = false"></button>
         </div>
@@ -104,12 +132,13 @@ export default {
     return {
       cart: [],
       showForm: false,
+      isLoggedIn: false,
+      isProcessing: false,
       customer: {
         name: '',
         phone: '',
         address: ''
       },
-      // Toast változók
       showToast: false,
       toastMessage: '',
       toastClass: 'bg-success text-white',
@@ -123,17 +152,21 @@ export default {
   },
   mounted() {
     this.loadCart();
-    this.loadUserData();
+    this.checkAuthAndLoadUserData();
   },
   methods: {
-    loadUserData() {
+    checkAuthAndLoadUserData() {
+      const token = localStorage.getItem('access_token');
       const userStr = localStorage.getItem('user');
-      if (userStr) {
+
+      if (token && userStr) {
+        this.isLoggedIn = true;
         const user = JSON.parse(userStr);
-        // Automatikusan beírjuk a nevét, ha be van lépve
         this.customer.name = user.name || '';
         this.customer.phone = user.phone || '';
         this.customer.address = user.address || '';
+      } else {
+        this.isLoggedIn = false;
       }
     },
     loadCart() {
@@ -141,13 +174,20 @@ export default {
     },
     increaseQuantity(id) {
       const item = this.cart.find(i => i.id === id);
-      if (item) { item.quantity += 1; this.saveCart(); }
+      if (item) {
+        item.quantity += 1;
+        this.saveCart();
+      }
     },
     decreaseQuantity(id) {
       const item = this.cart.find(i => i.id === id);
       if (item) {
-        if (item.quantity > 1) { item.quantity -= 1; this.saveCart(); }
-        else { this.removeFromCart(id); }
+        if (item.quantity > 1) {
+          item.quantity -= 1;
+          this.saveCart();
+        } else {
+          this.removeFromCart(id);
+        }
       }
     },
     removeFromCart(id) {
@@ -162,15 +202,16 @@ export default {
     saveCart() {
       localStorage.setItem('cart', JSON.stringify(this.cart));
     },
-
-    // Telefonszám szűrése gépelés közben
     filterPhone() {
       this.customer.phone = this.customer.phone.replace(/[^\d+]/g, '');
     },
-
-    // Az új rendelés leadó függvény
     async submitOrder() {
-      // Összefűzzük a 3 mezőt egyetlen sztringgé
+      if (!this.isLoggedIn) {
+        this.triggerToast('A rendelés leadásához be kell jelentkezned!', 'error');
+        return;
+      }
+
+      this.isProcessing = true;
       const fullShippingAddress = `${this.customer.name} | ${this.customer.address} | Tel: ${this.customer.phone}`;
 
       try {
@@ -180,18 +221,21 @@ export default {
           shipping_address: fullShippingAddress
         });
 
-        this.triggerToast('✅ Sikeres rendelés! Köszönjük a vásárlást.', 'success');
+        this.triggerToast('Sikeres rendelés! Köszönjük a vásárlást.', 'success');
         this.clearCart();
-
-        // Űrlap alaphelyzetbe állítása
         this.customer = { name: '', phone: '', address: '' };
+
+        setTimeout(() => {
+          this.$router.push('/profile');
+        }, 1500);
 
       } catch (error) {
         console.error("Hiba a rendelésnél:", error);
-        this.triggerToast('❌ Hiba történt a rendelés leadásakor.', 'error');
+        this.triggerToast('Hiba történt a rendelés leadásakor.', 'error');
+      } finally {
+        this.isProcessing = false;
       }
     },
-
     triggerToast(message, type = 'success') {
       this.toastMessage = message;
       if (type === 'warning') this.toastClass = 'bg-warning text-dark';
@@ -202,7 +246,6 @@ export default {
       if (this.toastTimer) clearTimeout(this.toastTimer);
       this.toastTimer = setTimeout(() => this.showToast = false, 3000);
     },
-
     formatPrice(price) {
       return new Intl.NumberFormat('hu-HU').format(price);
     }

@@ -4,23 +4,25 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Product extends Model
 {
     use HasFactory;
 
-    // Engedélyezzük ezeknek a mezőknek a tömeges mentését
     protected $fillable = [
         'name',
         'description',
         'price',
-        'category', // A kategória engedélyezése
+        'category',
         'image_url'
     ];
 
-    // Kapcsolat: Egy termék több rendelési tételben (kosárban) is szerepelhet
-    public function orderItems()
+    /**
+     * Kapcsolat: Egy termék egy kategóriához tartozik.
+     */
+    public function category(): BelongsTo
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->belongsTo(Category::class);
     }
 }
